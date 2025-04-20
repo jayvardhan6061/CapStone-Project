@@ -1,0 +1,188 @@
+[
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "streamlit",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "streamlit",
+        "description": "streamlit",
+        "detail": "streamlit",
+        "documentation": {}
+    },
+    {
+        "label": "tensorflow",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "tensorflow",
+        "description": "tensorflow",
+        "detail": "tensorflow",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "matplotlib.pyplot",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "matplotlib.pyplot",
+        "description": "matplotlib.pyplot",
+        "detail": "matplotlib.pyplot",
+        "documentation": {}
+    },
+    {
+        "label": "seaborn",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "seaborn",
+        "description": "seaborn",
+        "detail": "seaborn",
+        "documentation": {}
+    },
+    {
+        "label": "Image",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
+        "label": "image",
+        "importPath": "tensorflow.keras.preprocessing",
+        "description": "tensorflow.keras.preprocessing",
+        "isExtraImport": true,
+        "detail": "tensorflow.keras.preprocessing",
+        "documentation": {}
+    },
+    {
+        "label": "model_from_json",
+        "importPath": "tensorflow.keras.models",
+        "description": "tensorflow.keras.models",
+        "isExtraImport": true,
+        "detail": "tensorflow.keras.models",
+        "documentation": {}
+    },
+    {
+        "label": "load_model",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def load_model():\n    try:\n        # Try direct Keras model loading first (preferred method)\n        if os.path.exists(\"best_resnet152_model.keras\"):\n            st.info(\"Loading model from best_resnet152_model.keras\")\n            model = tf.keras.models.load_model(\"best_resnet152_model.keras\")\n        else:\n            # Fallback to loading from architecture + weights\n            st.info(\"Loading model from architecture and weights files\")\n            # Load model architecture",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "preprocess_image",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def preprocess_image(img, target_size=(224, 224)):\n    \"\"\"Resize and preprocess image for ResNet152\"\"\"\n    img = img.resize(target_size)\n    img_array = image.img_to_array(img)\n    img_array = np.expand_dims(img_array, axis=0)\n    # ResNet152 preprocessing\n    img_array = tf.keras.applications.resnet.preprocess_input(img_array)\n    return img_array\n# Function to make predictions\ndef predict_image(model, img_array, idx_to_class):",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "predict_image",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def predict_image(model, img_array, idx_to_class):\n    \"\"\"Predict class with confidence for the image\"\"\"\n    predictions = model.predict(img_array)[0]\n    top_3_idx = predictions.argsort()[-3:][::-1]\n    top_3_classes = [idx_to_class[idx] for idx in top_3_idx]\n    top_3_probs = [predictions[idx] for idx in top_3_idx]\n    return list(zip(top_3_classes, top_3_probs))\n# Function to display class descriptions\ndef get_class_description(class_name):\n    \"\"\"Return description for each class\"\"\"",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "get_class_description",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_class_description(class_name):\n    \"\"\"Return description for each class\"\"\"\n    descriptions = {\n        \"ABE\": \"Abetalipoproteinemia - A rare inherited disorder that affects the absorption of dietary fats, cholesterol, and fat-soluble vitamins.\",\n        \"ART\": \"Artifact - Abnormalities or structures in medical images that are not naturally present in the specimen being examined.\",\n        \"BAS\": \"Basophilia - An increase in the number of basophils in the blood, often associated with allergic reactions or inflammatory conditions.\",\n        \"BLA\": \"Blast Cells - Immature blood cells that are normally found in the bone marrow but not in peripheral blood, often indicative of leukemia.\",\n        \"EBO\": \"Elliptocytosis & Ovalocytosis - Blood disorders characterized by abnormally shaped red blood cells that appear oval or elliptical.\",\n        \"EOS\": \"Eosinophilia - An abnormally high concentration of eosinophils in the blood, often in response to allergic disorders or parasitic infections.\",\n        \"FGC\": \"Familial Hypercholesterolemia - An inherited condition characterized by very high levels of cholesterol in the blood.\",",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "get_sample_images",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_sample_images():\n    \"\"\"Function to return sample images for demo purposes\"\"\"\n    # In a real scenario, you'd have actual paths to sample images\n    # This is a placeholder - you'll need to replace with actual images\n    samples = {\n        \"Sample 1: Blood Cell Analysis\": \"path/to/sample1.jpg\",\n        \"Sample 2: Tissue Section\": \"path/to/sample2.jpg\",\n        \"Sample 3: Microscopy Image\": \"path/to/sample3.jpg\",\n    }\n    return samples",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "create_pdf_report",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def create_pdf_report(results):\n    \"\"\"Create a PDF report of the results - this is a placeholder function\"\"\"\n    import io\n    from datetime import datetime\n    # In a real implementation, you would use a library like ReportLab to create a PDF\n    # For now, we'll just create a text file as a demonstration\n    buffer = io.BytesIO()\n    report_text = f\"\"\"\nMEDICAL IMAGE CLASSIFICATION REPORT\nGenerated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "display_results",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def display_results(results):\n    \"\"\"Display the classification results in a formatted way\"\"\"\n    # Create a modern card container for results\n    st.markdown(\"\"\"\n    <div style=\"padding: 1rem; border-radius: 1rem; margin-top: 2rem; background: linear-gradient(to bottom right, #ffffff, #f8f9fa); \n    box-shadow: 0 4px 12px rgba(0,0,0,0.08);\">\n    \"\"\", unsafe_allow_html=True)\n    st.markdown(\"<h2 class='sub-header' style='text-align: center; margin-bottom: 1.5rem;'>Classification Results</h2>\", unsafe_allow_html=True)\n    # Create a colorful card for primary diagnosis\n    primary_class = results[0][0]",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def main():\n    # Sidebar\n    st.sidebar.image(\"https://img.icons8.com/color/96/000000/microscope.png\", width=100)\n    st.sidebar.title(\"About\")\n    st.sidebar.info(\n        \"This application uses a ResNet152 deep learning model to classify medical images. \"\n        \"Upload an image to get a prediction with confidence scores.\"\n    )\n    st.sidebar.title(\"Instructions\")\n    st.sidebar.markdown(",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ['TF_CPP_MIN_LOG_LEVEL']",
+        "kind": 5,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0 = all messages, 1 = no INFO, 2 = no WARNING, 3 = no ERROR\nos.environ[\"TF_ENABLE_ONEDNN_OPTS\"] = \"0\"  # Disable oneDNN custom operations\nlogging.getLogger('tensorflow').setLevel(logging.ERROR)\nimport streamlit as st\nimport tensorflow as tf\nimport numpy as np\nimport json\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom PIL import Image",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"TF_ENABLE_ONEDNN_OPTS\"]",
+        "kind": 5,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "os.environ[\"TF_ENABLE_ONEDNN_OPTS\"] = \"0\"  # Disable oneDNN custom operations\nlogging.getLogger('tensorflow').setLevel(logging.ERROR)\nimport streamlit as st\nimport tensorflow as tf\nimport numpy as np\nimport json\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom PIL import Image\nfrom tensorflow.keras.preprocessing import image",
+        "detail": "app",
+        "documentation": {}
+    }
+]
