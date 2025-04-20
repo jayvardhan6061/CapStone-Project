@@ -1,8 +1,20 @@
 import os
 import logging
+import warnings
+
+# More aggressive TensorFlow warning suppression
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0 = all messages, 1 = no INFO, 2 = no WARNING, 3 = no ERROR
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Disable oneDNN custom operations
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'  # Prevent TensorFlow from allocating all GPU memory at once
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # Use CPU only, remove this line if you want to use GPU
+
+# Configure Python warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+# Configure logging more aggressively
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
+logging.getLogger('absl').setLevel(logging.ERROR)  # absl is used by TensorFlow internally
 
 import streamlit as st
 import tensorflow as tf
@@ -10,6 +22,9 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
+import time
+import io
+import requests
 from PIL import Image
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import model_from_json
@@ -68,45 +83,91 @@ st.markdown("""
 @st.cache_resource
 def load_model():
     try:
-        # Try direct Keras model loading first (preferred method)
-        if os.path.exists("best_resnet152_model.keras"):
-            st.info("Loading model from best_resnet152_model.keras")
-            model = tf.keras.models.load_model("best_resnet152_model.keras")
-        else:
-            # Fallback to loading from architecture + weights
-            st.info("Loading model from architecture and weights files")
-            # Load model architecture
-            with open("resnet152_model_architecture.json", "r") as json_file:
-                model_json = json_file.read()
-            
-            # Handle potential model deserialization issues
-            try:
-                model = model_from_json(model_json)
-            except TypeError as e:
-                st.error(f"Error loading model architecture: {e}")
-                # Create a dummy model for demonstration
-                st.warning("Creating a dummy model for demonstration purposes only")
-                from tensorflow.keras.applications import ResNet152
-                model = ResNet152(weights=None, include_top=True, classes=21)  # Updated to 21 classes
-            
-            # Try to load weights if the file exists
-            if os.path.exists("resnet152_model.weights.h5"):
-                try:
-                    model.load_weights("resnet152_model.weights.h5")
-                except:
-                    st.warning("Could not load model weights. Using random weights.")
+        # Local paths
+        model_path = "best_resnet152_model.keras"
+        class_indices_path = "class_indices.json"
         
-        # Load class indices
-        if os.path.exists("class_indices.json"):
-            with open("class_indices.json", "r") as f:
-                class_indices = json.load(f)
+        # Hugging Face URLs
+        model_url = "https://huggingface.co/Jaya6061/resnet152-medical-model/resolve/main/best_resnet152_model.keras"
+        class_indices_url = "https://huggingface.co/Jaya6061/resnet152-medical-model/raw/main/class_indices.json"
+        
+        # Download model from Hugging Face if it doesn't exist locally
+        if not os.path.exists(model_path):
+            # Create placeholders that we can clear later
+            info_placeholder = st.empty()
+            progress_placeholder = st.empty()
+            success_placeholder = st.empty()
+            
+            with st.spinner("Downloading model from Hugging Face (this may take a few moments)..."):
+                info_placeholder.info("Model not found locally. Downloading from Hugging Face...")
+                try:
+                    response = requests.get(model_url, stream=True)
+                    response.raise_for_status()  # Check for any errors
+                    
+                    total_size = int(response.headers.get('content-length', 0))
+                    block_size = 1024 * 1024  # 1 MB
+                    
+                    # Create a progress bar for downloading
+                    progress_bar = progress_placeholder.progress(0)
+                    
+                    with open(model_path, "wb") as f:
+                        dl = 0
+                        for data in response.iter_content(block_size):
+                            dl += len(data)
+                            f.write(data)
+                            if total_size > 0:
+                                progress = int(100 * dl / total_size)
+                                progress_bar.progress(progress)
+                    
+                    # Show success message briefly then clear it
+                    success_placeholder.success("Model downloaded successfully!")
+                    time.sleep(2)  # Show success message for 2 seconds
+                    
+                    # Clear all placeholders
+                    info_placeholder.empty()
+                    progress_placeholder.empty()
+                    success_placeholder.empty()
+                except Exception as e:
+                    info_placeholder.error(f"Error downloading model: {e}")
+                    raise
+        
+        # Load the model with a temporary message
+        load_placeholder = st.empty()
+        load_placeholder.info("Loading model...")
+        model = tf.keras.models.load_model(model_path)
+        # Clear the loading message
+        load_placeholder.empty()
+        
+        # Get class indices from local file or download from Hugging Face
+        if not os.path.exists(class_indices_path):
+            # Create placeholder for class indices message
+            indices_placeholder = st.empty()
+            indices_placeholder.info("Downloading class indices from Hugging Face...")
+            try:
+                response = requests.get(class_indices_url)
+                response.raise_for_status()
+                class_indices = response.json()
+                
+                # Save class indices locally for future use
+                with open(class_indices_path, "w") as f:
+                    json.dump(class_indices, f)
+                
+                # Clear the message after successful download
+                indices_placeholder.empty()
+            except Exception as e:
+                # Replace info with warning in case of error
+                indices_placeholder.warning(f"Error downloading class indices: {e}")
+                # Fall back to default class indices
+                class_indices = {
+                    "ABE": 0, "ART": 1, "BAS": 2, "BLA": 3, "EBO": 4, "EOS": 5, "FGC": 6,
+                    "HAC": 7, "KSC": 8, "LYI": 9, "LYT": 10, "MMZ": 11, "MON": 12, "MYB": 13,
+                    "NGB": 14, "NGS": 15, "NIF": 16, "OTH": 17, "PEB": 18, "PLM": 19, "PMO": 20
+                }
+                # Don't clear warning message as it contains useful error info
         else:
-            # Updated default class indices to include all 21 classes
-            class_indices = {
-                "ABE": 0, "ART": 1, "BAS": 2, "BLA": 3, "EBO": 4, "EOS": 5, "FGC": 6,
-                "HAC": 7, "KSC": 8, "LYI": 9, "LYT": 10, "MMZ": 11, "MON": 12, "MYB": 13,
-                "NGB": 14, "NGS": 15, "NIF": 16, "OTH": 17, "PEB": 18, "PLM": 19, "PMO": 20
-            }
+            # Load class indices from local file
+            with open(class_indices_path, "r") as f:
+                class_indices = json.load(f)
         
         # Invert dictionary to map from index to class name
         idx_to_class = {v: k for k, v in class_indices.items()}
@@ -193,7 +254,6 @@ def get_sample_images():
 # Function to create a PDF report (placeholder function)
 def create_pdf_report(results):
     """Create a PDF report of the results - this is a placeholder function"""
-    import io
     from datetime import datetime
     
     # In a real implementation, you would use a library like ReportLab to create a PDF
@@ -400,18 +460,30 @@ def main():
         # Add tabs for upload or sample
         upload_tab, sample_tab = st.tabs(["📤 Upload Your Image", "🔬 Use Sample Image"])
         
-        with upload_tab:
+        with upload_tab:            # Track current upload with a session ID
+            if 'current_upload_id' not in st.session_state:
+                st.session_state.current_upload_id = ""
+            
+            # Use the file uploader
             uploaded_file = st.file_uploader("Choose a medical image file", 
                                           type=["jpg", "jpeg", "png"],
                                           help="Upload an image to classify")
             
             if uploaded_file is not None:
+                # Generate a unique ID for this upload
+                current_id = str(hash(uploaded_file.name + str(uploaded_file.size)))
+                
+                # Clear results if a new image is uploaded
+                if current_id != st.session_state.current_upload_id:
+                    st.session_state.classification_results = None
+                    st.session_state.current_upload_id = current_id
+                
                 # Create columns for a better image layout
                 img_col1, img_col2, img_col3 = st.columns([1, 3, 1])
                 with img_col2:
                     # Display uploaded image with styling
                     img = Image.open(uploaded_file).convert('RGB')
-                    st.image(img, caption="Uploaded Image", use_column_width=True)
+                    st.image(img, caption="Uploaded Image", use_container_width=True)
                 
                 # Add a process button with better styling
                 _, btn_col, _ = st.columns([1,1,1])
@@ -428,7 +500,6 @@ def main():
                         progress_bar = st.progress(0)
                         for percent_complete in range(100):
                             # Simulate processing time
-                            import time
                             time.sleep(0.01)  # Fast enough not to be annoying
                             progress_bar.progress(percent_complete + 1)
                         
@@ -449,7 +520,7 @@ def main():
                     
                     # Show results below the image
                     display_results(results)
-                  # Show previous results if they exist in session state
+                # Show previous results if they exist in session state
                 elif st.session_state.classification_results is not None:
                     display_results(st.session_state.classification_results)
                     
@@ -490,7 +561,7 @@ def main():
                         # Create columns for a better image layout
                         img_col1, img_col2, img_col3 = st.columns([1, 3, 1])
                         with img_col2:
-                            st.image(img, caption=f"Sample: {selected_class}", use_column_width=True)
+                            st.image(img, caption=f"Sample: {selected_class}", use_container_width=True)
                             st.markdown(f"**Class**: {selected_class}")
                             st.markdown(f"**Description**: {get_class_description(selected_class)}")
                     except Exception as e:
@@ -528,7 +599,7 @@ def main():
                     # Create columns for a better image layout
                     img_col1, img_col2, img_col3 = st.columns([1, 3, 1])
                     with img_col2:
-                        st.image(img, caption=f"Sample: {selected_class}", use_column_width=True)
+                        st.image(img, caption=f"Sample: {selected_class}", use_container_width=True)
                 except Exception as e:
                     st.error(f"Error loading sample image: {str(e)}. Please try uploading your own image.")
                     img = None
@@ -548,7 +619,6 @@ def main():
                         # Show a progress bar
                         progress_bar = st.progress(0)
                         for percent_complete in range(100):
-                            import time
                             time.sleep(0.01)
                             progress_bar.progress(percent_complete + 1)
                         

@@ -18,13 +18,17 @@ Welcome to the Medical Image Classifier user manual! This document provides deta
 
 You can access the Medical Image Classifier in two ways:
 
-1. **Online (Recommended)**: Visit our [Hugging Face Space](https://huggingface.co/spaces/your-username/Medical-Image-Classifier) to use the application without any installation.
+1. **Online (Recommended)**: Visit our [Hugging Face Space](https://huggingface.co/spaces/Jaya6061/Medical_Image_Classification_System) to use the application without any installation.
+   - On first use, the model will automatically download from our Hugging Face [repository](https://huggingface.co/Jaya6061/resnet152-medical-model)
+   - You'll see a progress bar during the download process
+   - All subsequent visits will use the cached model for faster load times
 
 2. **Locally**: Follow these instructions to run on your machine:
    - Make sure you have installed all prerequisites (see README.md)
    - Activate your virtual environment
    - Run `streamlit run app.py`
    - Open your browser at http://localhost:8501
+   - The app will automatically download the model from Hugging Face if not found locally
 
 ### System Requirements
 
@@ -130,7 +134,9 @@ Each sample image represents a typical example of the respective condition to he
 | Image won't upload | File too large or unsupported format | Resize image to under 5MB and ensure it's JPG, JPEG, or PNG |
 | Classification takes too long | Slow internet or limited CPU resources | Try using sample images or wait longer for results |
 | Model gives unexpected results | Low-quality or non-medical images | Ensure images are clear and are actual microscopy images |
-| "Model loading error" message | Missing model files | Verify Git LFS pulled all files correctly |
+| "Model loading error" message | Network issues | Check your internet connection; the app will attempt to download the model from Hugging Face |
+| Previous results show with new images | UI state not cleared | The app now automatically clears previous results when a new image is uploaded |
+| TensorFlow warning messages | Normal initialization warnings | These are suppressed in the latest version and won't affect functionality |
 
 ### Error Messages
 
@@ -148,7 +154,7 @@ Each sample image represents a typical example of the respective condition to he
 - **Performance Metrics**:
   - Training Accuracy: ~95%
   - Validation Accuracy: ~92%
-  - Test Accuracy: ~91%
+  - Test Accuracy: ~93%
 
 ### Data Processing
 
